@@ -837,6 +837,81 @@ window.UPUMATCH_PROGRAMS = window.UPUMATCH_DATA.programs;
   };
 });
 
+// UI subject search helpers. Kept in global scope because the merit form
+// autocomplete runs outside the eligibility evaluator module above.
+const SUBJECT_ALIASES = {
+  "bm": "Bahasa Melayu",
+  "bahasa malaysia": "Bahasa Melayu",
+  "bi": "Bahasa Inggeris",
+  "english": "Bahasa Inggeris",
+  "math": "Matematik",
+  "maths": "Matematik",
+  "addmath": "Matematik Tambahan",
+  "add math": "Matematik Tambahan",
+  "additional mathematics": "Matematik Tambahan",
+  "physics": "Fizik",
+  "chemistry": "Kimia",
+  "biology": "Biologi",
+  "bio": "Biologi",
+  "computer science": "Sains Komputer",
+  "sains computer": "Sains Komputer",
+  "pqs": "Pendidikan Al-Quran & Al-Sunnah",
+  "pendidikan al quran dan as sunnah": "Pendidikan Al-Quran & Al-Sunnah",
+  "pendidikan al-quran dan as-sunnah": "Pendidikan Al-Quran & Al-Sunnah",
+  "pendidikan al quran dan al sunnah": "Pendidikan Al-Quran & Al-Sunnah",
+  "psi": "Pendidikan Syariah Islamiah",
+  "pend syariah": "Pendidikan Syariah Islamiah",
+  "syariah islamiah": "Pendidikan Syariah Islamiah",
+  "shariah islamiah": "Pendidikan Syariah Islamiah",
+  "pendidikan shariah islamiah": "Pendidikan Syariah Islamiah",
+  "pendidikan syariah islamiah": "Pendidikan Syariah Islamiah"
+};
+
+function normalizeText(value) {
+  return String(value == null ? "" : value).trim().replace(/\s+/g, " ");
+}
+
+function canonicalSubject(subject) {
+  const raw = normalizeText(subject);
+  const alias = SUBJECT_ALIASES[raw.toLowerCase()] || raw;
+  return alias.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/&|\band\b/g, " dan ")
+    .replace(/[’'`.-]/g, " ")
+    .replace(/\bas sunnah\b/g, "al sunnah")
+    .replace(/\s+/g, " ").trim();
+}
+
+function subjectSearchText(name) {
+  const official = normalizeText(name);
+  const aliases = Object.entries(SUBJECT_ALIASES)
+    .filter(([, target]) => target === official)
+    .map(([alias]) => alias);
+  return [official, ...aliases].join(" ").toLowerCase();
+}
+
+function levenshtein(a, b) {
+  a = String(a || "").toLowerCase();
+  b = String(b || "").toLowerCase();
+  const prev = Array.from({length: b.length + 1}, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let left = i;
+    let diag = i - 1;
+    for (let j = 1; j <= b.length; j++) {
+      const up = prev[j];
+      const cur = Math.min(
+        up + 1,
+        left + 1,
+        diag + (a[i - 1] === b[j - 1] ? 0 : 1)
+      );
+      prev[j] = cur;
+      diag = up;
+      left = cur;
+    }
+  }
+  return prev[b.length];
+}
+
 
 const GRADE_POINTS = {
   "A+": 18, "A": 16, "A-": 14, "B+": 12, "B": 10,
@@ -900,10 +975,17 @@ const PACKAGE_SUBJECTS = {
 };
 
 const RULE_SUBJECTS = ["Akuakultur dan Haiwan Rekreasi", "Al-Adab Wa Al-Balaghah", "Al-Lughah Al-Arabiah Al-Muasirah", "Al-Lughah Al-Arabiyyah Al-Muasirah", "Al-Lughah al-Arabiah al-Muasirah", "Al-Syariah", "Aplikasi Komputer dan Perniagaan", "Asas Kelestarian", "Bahasa Arab", "Bahasa Arab (Komunikasi)", "Bahasa Arab Komunikasi", "Bahasa Arab Tinggi", "Bahasa Inggeris", "Bahasa Melayu", "Biologi", "Ekonomi", "Fizik", "Fundamental of Programming", "Fundamentals of Programming", "Geografi", "Grafik Berkomputer", "Grafik Komunikasi Teknikal", "Hifz Al Quran", "Hifz Al-Quran", "Hortikultur Hiasan dan Landskap", "Information and Communication Technology", "Kejenteraan Ladang", "Kerja Paip Domestik", "Kimia", "Kimpalan Arka dan Gas", "Landskap dan Nurseri", "Lukisan Kejuruteraan", "Maharat Al-Quran", "Maharat al-Quran", "Manahij Al-Ulum Al-Islamiah", "Matematik", "Matematik Tambahan", "Menservis Automobil", "Menservis Motosikal", "Menservis Peralatan Elektrik Domestik", "Menservis Peralatan dan Penyaman Udara", "Pembinaan Domestik", "Pendawaian Domestik", "Pendidikan Al-Quran dan Al-Sunnah", "Pendidikan Al-Quran dan As-Sunnah", "Pendidikan Islam", "Pendidikan Moral", "Pendidikan Seni Visual", "Pendidikan Syariah Islamiah", "Pengajian Agroteknologi", "Pengajian Kejuruteraan Awam", "Pengajian Kejuruteraan Elektrik dan Elektronik", "Pengajian Kejuruteraan Mekanikal", "Pengajian Keusahawanan", "Pengeluaran Tanaman", "Pengetahuan Sains Sukan", "Pengurusan Ladang", "Perdagangan", "Perniagaan", "Pertanian", "Prinsip Perakaunan", "Produksi Multimedia", "Programming & Development Tools", "Programming and Development Tools", "Reka Bentuk Grafik", "Reka Bentuk Grafik Digital", "Reka Cipta", "Sains", "Sains Gunaan", "Sains Komputer", "Sains Pertanian", "Sains Sukan", "Sains Tambahan", "Sejarah", "Tanaman Makanan", "Tasawwur Islam", "Teknologi Kejuruteraan", "Turath Al-Dirasat Islamiah", "Turath Al-Quran Wa Al-Sunnah", "Turath Al-Quran dan Al-Sunnah", "Turath Bahasa Arab", "Turath Dirasat Al-Islamiah", "Turath Dirasat Islamiah", "Usul Al-Din", "Usul al-Din"];
+// Senarai untuk KIRAAN MERIT sahaja: hanya nama subjek standard Merit 2.0.
+// Variasi nama daripada syarat program tidak dipaparkan di dropdown merit.
 const SUBJECT_MASTER = [...new Set([
   "Bahasa Melayu", "Bahasa Inggeris", "Matematik", "Sejarah",
   "Pendidikan Islam", "Pendidikan Moral", "Sains",
-  ...PACKAGE_SUBJECTS.stemA, ...PACKAGE_SUBJECTS.stemB, ...PACKAGE_SUBJECTS.stemC, ...PACKAGE_SUBJECTS.humanities,
+  ...PACKAGE_SUBJECTS.stemA, ...PACKAGE_SUBJECTS.stemB, ...PACKAGE_SUBJECTS.stemC, ...PACKAGE_SUBJECTS.humanities
+])].sort((a,b) => a.localeCompare(b, "ms"));
+
+// Senarai lebih luas untuk semakan SYARAT PROGRAM sahaja.
+const ELIGIBILITY_SUBJECT_MASTER = [...new Set([
+  ...SUBJECT_MASTER,
   ...RULE_SUBJECTS
 ])].sort((a,b) => a.localeCompare(b, "ms"));
 
@@ -921,7 +1003,7 @@ function availableOtherSubjects(currentId, currentValue = "") {
 }
 function availableExtraSubjects(currentId, currentValue = "") {
   const used = getUsedSubjects(currentId);
-  return SUBJECT_MASTER.filter(name => name === currentValue || !used.has(name));
+  return ELIGIBILITY_SUBJECT_MASTER.filter(name => name === currentValue || !used.has(name));
 }
 
 const state = { otherSubjects: [], extraSubjects: [] };
@@ -946,7 +1028,7 @@ function escapeHtml(value = "") {
 function searchableSubjectField(inputClass, ariaLabel, selected = "") {
   return `
     <div class="subject-picker">
-      <input type="text" class="${inputClass}" aria-label="${escapeHtml(ariaLabel)}" placeholder="Taip untuk cari subjek" autocomplete="off" value="${escapeHtml(selected)}" />
+      <input type="text" class="${inputClass}" aria-label="${escapeHtml(ariaLabel)}" placeholder="Taip / klik untuk cari subjek" autocomplete="off" value="${escapeHtml(selected)}" />
       <div class="subject-suggestions" role="listbox"></div>
     </div>
   `;
@@ -954,34 +1036,48 @@ function searchableSubjectField(inputClass, ariaLabel, selected = "") {
 
 function filterSubjectSuggestions(options, query) {
   const clean = normalizeText(query);
-  const exactText = clean.toLowerCase();
-  const exactCanon = canonicalSubject(clean);
+  const q = clean.toLowerCase();
+  const aliasTarget = SUBJECT_ALIASES[q] || "";
+  const exactCanon = canonicalSubject(aliasTarget || clean);
   const exact = [];
   const starts = [];
   const contains = [];
+  const fuzzy = [];
+
   (options || []).forEach((name) => {
     const label = normalizeText(name);
     const lower = label.toLowerCase();
     const canon = canonicalSubject(label);
+    const hay = subjectSearchText(label);
     if (!clean) {
       starts.push(name);
       return;
     }
-    if (lower === exactText || canon === exactCanon) exact.push(name);
-    else if (lower.startsWith(exactText) || canon.startsWith(exactCanon)) starts.push(name);
-    else if (lower.includes(exactText) || canon.includes(exactCanon)) contains.push(name);
+    if (label === aliasTarget || lower === q || canon === exactCanon) exact.push(name);
+    else if (lower.startsWith(q) || hay.split(/\s+/).some(x => x.startsWith(q))) starts.push(name);
+    else if (lower.includes(q) || hay.includes(q)) contains.push(name);
+    else {
+      // Light typo tolerance: compare the query with words/aliases.
+      const terms = hay.split(/\s+/).filter(Boolean);
+      const best = Math.min(...terms.map(term => levenshtein(q, term)));
+      const allowed = q.length <= 4 ? 1 : q.length <= 8 ? 2 : 3;
+      if (best <= allowed) fuzzy.push(name);
+    }
   });
-  return [...new Set([...exact, ...starts, ...contains])].slice(0, 12);
+  return [...new Set([...exact, ...starts, ...contains, ...fuzzy])].slice(0, 14);
 }
 
 function resolveOfficialSubject(value, options) {
   const clean = normalizeText(value);
   if (!clean) return "";
+  const list = options || [];
   const alias = SUBJECT_ALIASES[clean.toLowerCase()];
-  if (alias && (options || []).includes(alias)) return alias;
+  if (alias && list.includes(alias)) return alias;
   const exactCanon = canonicalSubject(clean);
-  const match = (options || []).find((name) => canonicalSubject(name) === exactCanon || normalizeText(name).toLowerCase() === clean.toLowerCase());
-  return match || "";
+  const match = list.find((name) => canonicalSubject(name) === exactCanon || normalizeText(name).toLowerCase() === clean.toLowerCase());
+  if (match) return match;
+  const suggestions = filterSubjectSuggestions(list, clean);
+  return suggestions.length === 1 ? suggestions[0] : "";
 }
 
 function attachSubjectAutocomplete(input, getOptions, onCommit) {
@@ -1268,8 +1364,15 @@ function eligibilityPresentation(program,candidate){
   };
   const style=map[ev.status]||map.manual_review;
   const details=[];
-  [...(ev.checks||[]),...(ev.restrictions||[])].filter(x=>x.status==="fail"||x.status==="unknown").slice(0,4).forEach(x=>details.push(x.message));
-  if((ev.manual_checks||[]).length) details.push("Terdapat syarat manual / temu duga / ujian yang perlu disahkan.");
+  [...(ev.checks||[]),...(ev.restrictions||[])]
+    .filter(x => (x.status==="fail" || x.status==="unknown") && x.rule_type !== "direct_epanduan_special_requirement_check")
+    .slice(0,4)
+    .forEach(x=>details.push(x.message));
+  const manualChecks = ev.manual_checks || [];
+  const hasDirectEpanduanCheck = manualChecks.some(x => x.type === "direct_epanduan_special_requirement_check");
+  const hasOtherManualChecks = manualChecks.some(x => x.type !== "direct_epanduan_special_requirement_check");
+  if(hasDirectEpanduanCheck) details.push("Sebahagian syarat khas program ini perlu disahkan terus melalui e-Panduan UPU.");
+  if(hasOtherManualChecks) details.push("Terdapat syarat manual / temu duga / ujian yang perlu disahkan.");
   const ruleNote=program.eligibility ? (ev.hard_rejection_enabled ? "Syarat akademik ini boleh dinilai secara automatik berdasarkan rule yang dikodkan." : "Program diliputi semakan, tetapi sebahagian syarat masih memerlukan pengesahan manual di e-Panduan.") : "Syarat automatik khusus belum tersedia; rujuk e-Panduan untuk pengesahan.";
   return {ev,html:`<div class="eligibility-result ${style.cls}"><strong>${style.title}</strong><p>${ev.message}</p>${details.length?`<ul>${details.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}<p style="opacity:.8;font-size:11px;margin-top:7px">${ruleNote}</p></div>`};
 }
@@ -1305,7 +1408,11 @@ function calculateMerit() {
   }, 0);
   const packageMerit = (packagePoints / packageDenom) * 30;
 
-  const bestPoints = state.otherSubjects.filter(x => x.name).map(x => GRADE_POINTS[x.grade] || 0).sort((a,b) => b-a).slice(0,2).reduce((a,b) => a+b, 0);
+  const bestPoints = [...document.querySelectorAll(".other-row")].map((row) => {
+    const subject = row.querySelector(".other-name")?.value?.trim() || "";
+    const grade = row.querySelector(".other-grade")?.value || "G";
+    return subject ? (GRADE_POINTS[grade] || 0) : 0;
+  }).sort((a,b) => b-a).slice(0,2).reduce((a,b) => a+b, 0);
   const bestMerit = (bestPoints / 36) * 10;
 
   const rawAcademic80 = universalMerit + packageMerit + bestMerit;
