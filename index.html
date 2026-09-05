@@ -284,6 +284,7 @@ footer { background: #071a36; color: #fff; padding: 28px 0; }
 <!-- UPUMatch v4.11: UiTM eligibility audit 2026-09-01 -->
 <!-- UPUMatch v4.12: UPM 2026 audit + capped elective groups -->
 <!-- UPUMatch v5.1: search aliases + official STEM C names + stream audit + full result display 2026-09-04 -->
+<!-- UPUMatch v5.2.1: print/save PDF button runtime fix 2026-09-05 -->
 <!-- UPUMatch v5.2: compact Print / Save PDF report 2026-09-05 -->
 </head>
 <body>
@@ -1962,7 +1963,7 @@ function buildPrintReport(){
     rows+=items.map(p=>{
       runningNo+=1;
       const status=p.merit==null?null:competitionStatus(merit,p.merit);
-      const ev=window.UPUMATCHEligibility.evaluateProgram(p,candidate);
+      const ev=window.UPUMatchEligibility.evaluateProgram(p,candidate);
       const meritLabel=status?status.title:"Purata merit belum tersedia";
       const catClass=status?`print-cat-${status.category}`:"";
       return `<tr>
