@@ -235,11 +235,56 @@ footer { background: #071a36; color: #fff; padding: 28px 0; }
 .subject-option:hover,.subject-option.active{background:#eef4ff;color:var(--blue);font-weight:600}
 .subject-empty{color:var(--muted);cursor:default}
 
+
+
+/* UPUMatch v5.2: compact Print / Save PDF report */
+.results-tools{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.print-btn{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.print-btn:disabled{opacity:.48;cursor:not-allowed;transform:none!important}
+#printReport{display:none}
+
+@media(max-width:720px){
+  .results-tools{width:100%;justify-content:flex-start}
+  .results-tools .data-status{white-space:normal}
+  .print-btn{width:100%;justify-content:center}
+}
+
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  html,body{background:#fff!important;color:#111!important}
+  body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body>.topline,body>header,body>main,body>footer{display:none!important}
+  #printReport{display:block!important;font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff}
+  .print-head{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;border-bottom:2px solid #10254b;padding-bottom:7px;margin-bottom:7px}
+  .print-brand{font-size:20pt;font-weight:900;letter-spacing:-.5px;color:#10254b}
+  .print-brand span{color:#d99b00}
+  .print-subtitle{font-size:9pt;margin-top:2px;color:#444}
+  .print-stamp{text-align:right;font-size:8pt;line-height:1.35;color:#444}
+  .print-summary{display:grid;grid-template-columns:1.35fr .7fr .7fr .7fr;gap:6px;margin:7px 0}
+  .print-summary>div{border:1px solid #cfd6df;border-radius:5px;padding:5px 7px}
+  .print-summary span{display:block;font-size:6.8pt;text-transform:uppercase;letter-spacing:.04em;color:#666;font-weight:700}
+  .print-summary strong{display:block;font-size:10pt;margin-top:2px;color:#10254b}
+  .print-breakdown{font-size:7.5pt;line-height:1.35;margin:4px 0 7px;color:#333}
+  .print-table{width:100%;border-collapse:collapse;table-layout:fixed}
+  .print-table col.no{width:4%}.print-table col.program{width:39%}.print-table col.code{width:10%}.print-table col.avg{width:10%}.print-table col.meritstat{width:21%}.print-table col.elig{width:16%}
+  .print-table thead{display:table-header-group}
+  .print-table th{background:#10254b!important;color:#fff!important;font-size:7.5pt;text-align:left;padding:4px 5px;border:1px solid #10254b;line-height:1.15}
+  .print-table td{font-size:7.5pt;line-height:1.18;vertical-align:top;padding:3px 5px;border:1px solid #c9cfd8;overflow-wrap:anywhere}
+  .print-table tr{break-inside:avoid;page-break-inside:avoid}
+  .print-program-name{font-weight:700;color:#10254b}
+  .print-inst{font-size:6.8pt;color:#555;margin-top:1px}
+  .print-group td{background:#edf2f8!important;color:#10254b!important;font-weight:800;font-size:8pt;padding:4px 5px}
+  .print-cat-1{font-weight:700}.print-cat-2{font-weight:700}.print-cat-3{font-weight:700}.print-cat-4{font-weight:700}
+  .print-note{margin-top:6px;border:1px solid #d5bd70;background:#fff8df!important;border-radius:5px;padding:5px 7px;font-size:7pt;line-height:1.3;color:#4b421f}
+  .print-footer{margin-top:4px;font-size:6.7pt;color:#666;text-align:right}
+}
+
 </style>
 <!-- UPUMatch v4.4 syarat audit: 2026-09-01 -->
 <!-- UPUMatch v4.11: UiTM eligibility audit 2026-09-01 -->
 <!-- UPUMatch v4.12: UPM 2026 audit + capped elective groups -->
 <!-- UPUMatch v5.1: search aliases + official STEM C names + stream audit + full result display 2026-09-04 -->
+<!-- UPUMatch v5.2: compact Print / Save PDF report 2026-09-05 -->
 </head>
 <body>
   <div class="topline"></div>
@@ -406,9 +451,12 @@ footer { background: #071a36; color: #fff; padding: 28px 0; }
           <h2>Padanan program</h2>
           <p id="resultSummary">Masukkan minat anda untuk melihat padanan.</p>
         </div>
-        <div class="data-status">
-          <span class="dot"></span>
-          <span><strong id="dataCount">363</strong> program · <strong id="autoCount">358</strong> semakan akademik automatik · <strong id="manualCount">5</strong> semakan lanjut</span>
+        <div class="results-tools">
+          <div class="data-status">
+            <span class="dot"></span>
+            <span><strong id="dataCount">363</strong> program · <strong id="autoCount">358</strong> semakan akademik automatik · <strong id="manualCount">5</strong> semakan lanjut</span>
+          </div>
+          <button class="btn btn-light print-btn" id="printBtn" type="button" disabled title="Cetak keputusan atau simpan sebagai PDF">🖨️ Cetak / Simpan PDF</button>
         </div>
       </div>
 
@@ -430,6 +478,8 @@ footer { background: #071a36; color: #fff; padding: 28px 0; }
       </div>
     </section>
   </main>
+
+  <section id="printReport" aria-hidden="true"></section>
 
   <footer>
     <div class="container footer-inner">
@@ -1867,14 +1917,105 @@ function competitionStatus(userMerit, programMerit) {
   };
 }
 
+
+function printEligibilityLabel(ev){
+  if(!ev) return "Semakan lanjut";
+  if(ev.status === "eligible") return "Akademik dipenuhi";
+  if(ev.status === "ineligible") return "Belum dipenuhi";
+  if(ev.status === "eligible_pending_manual") return "Dipenuhi + semakan lanjut";
+  if(ev.status === "manual_review") return "Semakan lanjut";
+  if(ev.status === "no_rule") return "Belum automatik";
+  return "Semakan lanjut";
+}
+
+function buildPrintReport(){
+  const report=document.getElementById("printReport");
+  if(!report) return false;
+  const query=(document.getElementById("interestInput")?.value||"").trim();
+  if(!query){
+    report.innerHTML=`<div class="print-head"><div><div class="print-brand">UPU<span>Match</span></div><div class="print-subtitle">Laporan Semakan Program</div></div></div><p>Tiada padanan program untuk dicetak.</p>`;
+    return false;
+  }
+
+  const grouped=searchPrograms(query);
+  const all=[...grouped.primary,...grouped.related];
+  if(!all.length){
+    report.innerHTML=`<div class="print-head"><div><div class="print-brand">UPU<span>Match</span></div><div class="print-subtitle">Laporan Semakan Program</div></div></div><p>Tiada padanan program untuk “${escapeHtml(query)}”.</p>`;
+    return false;
+  }
+
+  const merit=calculateMerit();
+  const candidate=getCandidateProfile();
+  const printedAt=new Intl.DateTimeFormat("ms-MY",{dateStyle:"medium",timeStyle:"short"}).format(new Date());
+  const breakdown=[
+    `Komponen sejagat: ${document.getElementById("universalScore")?.textContent||"—"}`,
+    `Pakej: ${document.getElementById("packageScore")?.textContent||"—"}`,
+    `2 subjek terbaik: ${document.getElementById("bestScore")?.textContent||"—"}`,
+    `Akademik: ${document.getElementById("academicScore")?.textContent||"—"}`,
+    `Kokurikulum: ${document.getElementById("kokuScore")?.textContent||"—"}`
+  ].join(" · ");
+
+  let runningNo=0;
+  const rowsFor=(items,label)=>{
+    if(!items.length) return "";
+    let rows=`<tr class="print-group"><td colspan="6">${escapeHtml(label)} (${items.length})</td></tr>`;
+    rows+=items.map(p=>{
+      runningNo+=1;
+      const status=p.merit==null?null:competitionStatus(merit,p.merit);
+      const ev=window.UPUMATCHEligibility.evaluateProgram(p,candidate);
+      const meritLabel=status?status.title:"Purata merit belum tersedia";
+      const catClass=status?`print-cat-${status.category}`:"";
+      return `<tr>
+        <td>${runningNo}</td>
+        <td><div class="print-program-name">${escapeHtml(p.name||"")}</div><div class="print-inst">${escapeHtml([p.institution||"",p.level||"",p.field_group||""].filter(Boolean).join(" · "))}</div></td>
+        <td>${escapeHtml(p.code||"—")}</td>
+        <td>${p.merit==null?"—":Number(p.merit).toFixed(2)+"%"}</td>
+        <td class="${catClass}">${escapeHtml(meritLabel)}</td>
+        <td>${escapeHtml(printEligibilityLabel(ev))}</td>
+      </tr>`;
+    }).join("");
+    return rows;
+  };
+
+  report.innerHTML=`
+    <div class="print-head">
+      <div><div class="print-brand">UPU<span>Match</span></div><div class="print-subtitle">Laporan Semakan Program · Unit Bimbingan dan Kaunseling SMK Sungai Besar</div></div>
+      <div class="print-stamp">Dicetak / disimpan<br><strong>${escapeHtml(printedAt)}</strong></div>
+    </div>
+    <div class="print-summary">
+      <div><span>Minat / carian</span><strong>${escapeHtml(query)}</strong></div>
+      <div><span>Merit calon</span><strong>${merit.toFixed(2)}%</strong></div>
+      <div><span>Padanan utama</span><strong>${grouped.primary.length}</strong></div>
+      <div><span>Jumlah padanan</span><strong>${all.length}</strong></div>
+    </div>
+    <div class="print-breakdown">${escapeHtml(breakdown)}</div>
+    <table class="print-table">
+      <colgroup><col class="no"><col class="program"><col class="code"><col class="avg"><col class="meritstat"><col class="elig"></colgroup>
+      <thead><tr><th>No.</th><th>Program / Institusi</th><th>Kod</th><th>Purata Merit</th><th>Status Merit</th><th>Semakan Syarat</th></tr></thead>
+      <tbody>${rowsFor(grouped.primary,"Padanan Utama")}${rowsFor(grouped.related,"Program Berkaitan")}</tbody>
+    </table>
+    <div class="print-note"><strong>Nota penting:</strong> Purata merit bukan cut-off dan status UPUMatch ialah panduan awal. Tawaran sebenar bergantung pada kedudukan merit, syarat am/khas, kekosongan tempat, temu duga/ujian dan ketetapan semasa. Semak e-Panduan UPU untuk pengesahan akhir. Ini bukan portal rasmi UPU.</div>
+    <div class="print-footer">UPUMatch · Rujukan utama: e-Panduan UPUOnline</div>`;
+  return true;
+}
+
+function printCurrentResults(){
+  if(!buildPrintReport()){
+    alert("Sila cari padanan program terlebih dahulu sebelum mencetak atau menyimpan PDF.");
+    return;
+  }
+  window.print();
+}
+
 function renderResults(query) {
   const q=normalize(query);
   const results=document.getElementById("results");
   const summary=document.getElementById("resultSummary");
-  if(!q){ summary.textContent="Masukkan minat anda untuk melihat padanan."; results.innerHTML=`<div class="empty-state"><div class="empty-mark">UPU<span>Match</span></div><p>Keputusan padanan akan muncul di sini.</p></div>`; return; }
+  const printBtn=document.getElementById("printBtn");
+  if(!q){ if(printBtn) printBtn.disabled=true; summary.textContent="Masukkan minat anda untuk melihat padanan."; results.innerHTML=`<div class="empty-state"><div class="empty-mark">UPU<span>Match</span></div><p>Keputusan padanan akan muncul di sini.</p></div>`; return; }
   const grouped=searchPrograms(query); const all=[...grouped.primary,...grouped.related];
   summary.textContent=all.length?`${all.length} padanan ditemui untuk “${query}”. Padanan utama dipaparkan dahulu.`:`Belum jumpa padanan untuk “${query}”.`;
-  if(!all.length){ results.innerHTML=`<div class="no-match"><h3>Belum jumpa padanan.</h3><p>Cuba istilah lain seperti komputer, akaun, farmasi, perubatan, kejuruteraan, pelancongan atau nama bidang yang lebih khusus.</p></div>`; return; }
+  if(!all.length){ if(printBtn) printBtn.disabled=true; results.innerHTML=`<div class="no-match"><h3>Belum jumpa padanan.</h3><p>Cuba istilah lain seperti komputer, akaun, farmasi, perubatan, kejuruteraan, pelancongan atau nama bidang yang lebih khusus.</p></div>`; return; }
   const merit=calculateMerit(); const candidate=getCandidateProfile();
   const renderCard=(p)=>{
     const status=(p.merit==null)?null:competitionStatus(merit,p.merit);
@@ -1891,6 +2032,7 @@ function renderResults(query) {
   if(grouped.primary.length){ out+=`<div class="result-group"><h3>🎯 Padanan Utama (${grouped.primary.length})</h3></div>`+grouped.primary.map(renderCard).join(""); }
   if(grouped.related.length){ out+=`<div class="result-group related"><h3>💡 Program Berkaitan (${grouped.related.length})</h3></div>`+grouped.related.map(renderCard).join(""); }
   results.innerHTML=out;
+  if(printBtn) printBtn.disabled=false;
 }
 
 function init() {
@@ -1906,12 +2048,14 @@ function init() {
   document.getElementById("demoFarmasiPass").addEventListener("click",()=>loadDemoFarmasi(false));
   document.getElementById("demoFarmasiFail").addEventListener("click",()=>loadDemoFarmasi(true));
   document.getElementById("clearDemo").addEventListener("click",clearPrototype);
+  document.getElementById("printBtn").addEventListener("click",printCurrentResults);
   document.getElementById("matchBtn").addEventListener("click",()=>{ renderResults(document.getElementById("interestInput").value); document.getElementById("resultsSection").scrollIntoView({behavior:"smooth",block:"start"}); });
   document.getElementById("interestInput").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("matchBtn").click();});
   document.querySelectorAll("#interestChips button").forEach(btn=>btn.addEventListener("click",()=>{document.getElementById("interestInput").value=btn.dataset.interest;document.getElementById("matchBtn").click();}));
   calculateMerit();
 }
 document.addEventListener("DOMContentLoaded", init);
+window.addEventListener("beforeprint", buildPrintReport);
 
   </script>
 </body>
