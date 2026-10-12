@@ -77,6 +77,7 @@ a { color: inherit; }
 .section-heading p { color: var(--muted); margin: 0; font-size: 14px; line-height: 1.5; }
 .compact-heading { align-items: center; }
 .merit-badge { background: var(--navy); color: #fff; min-width: 176px; padding: 16px 20px; border-radius: 16px; text-align: right; box-shadow: var(--shadow); }
+.form-card > .merit-badge { margin-top: 24px; width: 100%; text-align: left; }
 .merit-badge span { display: block; font-size: 10px; font-weight: 800; letter-spacing: .14em; color: #9dc0ef; }
 .merit-badge strong { display: block; font-family: "Manrope", sans-serif; font-size: 31px; margin-top: 3px; }
 
@@ -348,38 +349,23 @@ footer { background: #071a36; color: #fff; padding: 28px 0; }
         <div>
           <div class="step-label">LANGKAH 1</div>
           <h2>Kira merit SPM</h2>
-          <p>Simulasi Merit 2.0: komponen akademik 90% + kokurikulum 10%. Subjek dipilih melalui dropdown berdasarkan senarai mata pelajaran Merit 2.0 UPU.</p>
-        </div>
-        <div class="merit-badge" id="meritBadge">
-          <span>MERIT ANDA</span>
-          <strong id="meritValue">0.00%</strong>
+          <p>Simulasi Merit 2.0: komponen akademik 90% + kokurikulum 10%. Masukkan semua subjek dan gred; pakej serta subjek terbaik dipilih secara automatik.</p>
         </div>
       </div>
 
       <div class="form-card">
         <div class="field-group full-field">
-          <label for="stream">Jenis aliran / pakej</label>
-          <select id="stream">
-            <option value="stemA">STEM A</option>
-            <option value="stemB">STEM B</option>
-            <option value="stemC">STEM C</option>
-            <option value="humanities">Kemanusiaan & Sastera Ikhtisas</option>
-          </select>
-          <small id="packageHint">Pilih mata pelajaran pakej daripada senarai rasmi.</small>
-          <small style="display:block;margin-top:6px;">Rujukan subjek: SPI KPM dan slaid rasmi UPU Merit 2.0.</small>
-          <div id="streamAudit" class="stream-audit">Semakan aliran akan dibuat berdasarkan kombinasi subjek yang dimasukkan.</div>
+          <label>Pakej dikesan secara automatik</label>
+          <select id="stream" hidden aria-hidden="true" tabindex="-1"><option value="stemA">STEM A</option><option value="stemB">STEM B</option><option value="stemC">STEM C</option><option value="humanities">Kemanusiaan &amp; Sastera Ikhtisas</option></select>
+          <div id="streamAudit" class="stream-audit" aria-live="polite"></div>
         </div>
-
-        <div class="subsection-title">4 Mata Pelajaran Universal</div>
+        <div class="subsection-title">Masukkan semua keputusan SPM</div>
+        <div class="subsection-note">Isi gred empat subjek universal, kemudian tambah semua subjek lain yang diambil. Sistem memilih subjek pakej dan dua subjek terbaik lain secara automatik.</div>
         <div class="grade-grid" id="universalGrid"></div>
-
-        <div class="subsection-title">Mata Pelajaran Pakej</div>
-        <div class="package-grid" id="packageGrid"></div>
-
-        <div class="subsection-title">2 Mata Pelajaran Terbaik Lain</div>
-        <div class="subsection-note">Pilih dua mata pelajaran lain dengan gred terbaik yang belum digunakan sebagai mata pelajaran Universal atau Pakej.</div>
-        <div id="otherSubjects" class="other-subjects"></div>
-
+        <div class="extra-title-row"><strong>Subjek lain yang diambil</strong><button type="button" id="addExtraBtn">+ Tambah subjek</button></div>
+        <div id="extraSubjects" class="extra-grid"></div>
+        <div class="subsection-title">Subjek yang dipilih untuk merit</div>
+        <div id="autoSelection" class="subsection-note" aria-live="polite"></div>
         <div class="koku-row">
           <div>
             <label for="koku">Markah Kokurikulum</label>
@@ -401,7 +387,7 @@ footer { background: #071a36; color: #fff; padding: 28px 0; }
 
         <div class="eligibility-panel">
           <h3>Semakan syarat program</h3>
-          <p>Maklumat di bawah digunakan oleh evaluator syarat. Jika subjek tambahan ialah mata pelajaran yang sah untuk Merit 2.0, sistem akan mempertimbangkannya bersama subjek lain dan memilih <strong>2 mata pelajaran terbaik yang belum digunakan</strong> secara automatik.</p>
+          <p>Semua subjek yang dimasukkan digunakan untuk menyemak syarat program, termasuk subjek yang tidak dipilih dalam kiraan merit.</p>
           <div class="eligibility-settings">
             <div>
               <label for="bumiputeraStatus">Status Bumiputera</label>
@@ -416,14 +402,15 @@ footer { background: #071a36; color: #fff; padding: 28px 0; }
               <label class="check-box"><input type="checkbox" id="resultsComplete"> Saya telah masukkan semua mata pelajaran SPM yang relevan untuk semakan syarat.</label>
             </div>
           </div>
-          <div class="extra-title-row"><strong>Subjek tambahan</strong><button type="button" id="addExtraBtn">+ Tambah subjek</button></div>
-          <div id="extraSubjects" class="extra-grid"></div>
-          <div class="prototype-note">Jika subjek sudah dipilih pada bahagian Universal, Pakej atau 2 Terbaik, tak perlu pilih semula di sini.</div>
           <div class="demo-actions">
             <button type="button" id="demoFarmasiPass">Cuba contoh Farmasi ✅</button>
             <button type="button" id="demoFarmasiFail">Cuba contoh Kimia gagal ❌</button>
             <button type="button" id="clearDemo">Kosongkan semula</button>
           </div>
+        </div>
+        <div class="merit-badge" id="meritBadge">
+          <span>MERIT ANDA</span>
+          <strong id="meritValue">0.00%</strong>
         </div>
       </div>
     </section>
@@ -1355,8 +1342,8 @@ function clearSubjectFromSecondaryPools(subject) {
   });
 }
 
-function gradeOptions(selected = "G") {
-  return Object.keys(GRADE_POINTS).map(g => `<option value="${g}" ${g === selected ? "selected" : ""}>${g}</option>`).join("");
+function gradeOptions(selected = "") {
+  return `<option value="" ${!selected ? "selected" : ""}>— Pilih gred —</option>` + Object.keys(GRADE_POINTS).map(g => `<option value="${g}" ${g === selected ? "selected" : ""}>${g}</option>`).join("");
 }
 
 function subjectOptions(subjects, selected = "") {
@@ -1516,133 +1503,24 @@ function renderUniversal() {
   document.querySelectorAll(".universal-grade").forEach(el => el.addEventListener("change", calculateMerit));
 }
 
-function renderPackage() {
-  const stream = document.getElementById("stream").value;
-  const count = stream === "stemC" ? 1 : 2;
-  const subjects = PACKAGE_SUBJECTS[stream] || [];
-  const validCurrentPackage = new Set(subjects.map(canonicalSubject));
-  const previous = [...document.querySelectorAll(".package-item")].map((row) => {
-    const name = row.querySelector(".package-name")?.value || "";
-    const grade = row.querySelector(".package-grade")?.value || "G";
-    // Never carry an old package subject into a stream where it is invalid.
-    return name && validCurrentPackage.has(canonicalSubject(name))
-      ? { name, grade }
-      : { name: "", grade: "G" };
-  });
-  const hint = document.getElementById("packageHint");
-  hint.textContent = count === 1
-    ? "Taip untuk cari 1 mata pelajaran pakej STEM C."
-    : "Taip untuk cari 2 mata pelajaran pakej yang digunakan dalam simulasi merit.";
-  const grid = document.getElementById("packageGrid");
-  grid.innerHTML = Array.from({ length: count }, (_, i) => `
-    <div class="package-item">
-      ${searchableSubjectField("package-name", `Mata pelajaran pakej ${i + 1}`, previous[i]?.name || "")}
-      <select class="package-grade" aria-label="Gred mata pelajaran pakej ${i + 1}">${gradeOptions(previous[i]?.grade || "G")}</select>
-    </div>
-  `).join("");
-
-  grid.querySelectorAll(".package-item").forEach((row) => {
-    const nameInput = row.querySelector(".package-name");
-    attachSubjectAutocomplete(nameInput, () => {
-      const currentValue = normalizeText(nameInput.value);
-      const taken = [...grid.querySelectorAll(".package-name")]
-        .filter((el) => el !== nameInput)
-        .map((el) => normalizeText(el.value))
-        .filter(Boolean);
-      return subjects.filter((name) => name === currentValue || !taken.includes(name));
-    }, (value) => {
-      if (value) {
-        [...grid.querySelectorAll(".package-name")].forEach((other) => {
-          if (other !== nameInput && canonicalSubject(other.value) === canonicalSubject(value)) other.value = "";
-        });
-        clearSubjectFromSecondaryPools(value);
-      }
-      renderOtherSubjects();
-      renderExtraSubjects();
-      calculateMerit();
-    });
-    row.querySelector(".package-grade").addEventListener("change", calculateMerit);
-  });
-  renderOtherSubjects();
-  renderExtraSubjects();
-  calculateMerit();
+function addExtraSubject(name = "", grade = "") {
+  state.extraSubjects.push({id: String(Date.now()+Math.random()), name, grade});
+  renderExtraSubjects(); calculateMerit();
 }
-
-function removeDuplicatePackageSelection(changedEl) {
-  if (!changedEl.classList.contains("package-name") || !changedEl.value) return;
-  const names = [...document.querySelectorAll(".package-name")];
-  names.forEach(el => {
-    if (el !== changedEl && el.value === changedEl.value) el.value = "";
-  });
-}
-
-function addOtherSubject(name = "", grade = "G") {
-  if (state.otherSubjects.length >= 2) return;
-  state.otherSubjects.push({ id: String(Date.now() + Math.random()), name, grade });
-  renderOtherSubjects();
-}
-
-function renderOtherSubjects() {
-  const wrap = document.getElementById("otherSubjects");
-  while (state.otherSubjects.length < 2) {
-    state.otherSubjects.push({ id: String(Date.now() + Math.random()), name: "", grade: "G" });
-  }
-  wrap.innerHTML = state.otherSubjects.slice(0,2).map((item, index) => `
-    <div class="other-row" data-id="${item.id}">
-      ${searchableSubjectField("other-name", `Mata pelajaran terbaik ${index + 1}`, item.name)}
-      <select class="other-grade" aria-label="Gred mata pelajaran terbaik ${index + 1}">${gradeOptions(item.grade)}</select>
-    </div>
-  `).join("");
-
-  wrap.querySelectorAll(".other-row").forEach(row => {
-    const id = row.dataset.id;
-    const item = state.otherSubjects.find(x => x.id === id);
-    const nameInput = row.querySelector(".other-name");
-    attachSubjectAutocomplete(nameInput, () => availableOtherSubjects(id, nameInput.value), (value) => {
-      if (item) item.name = value;
-      renderOtherSubjects();
-      renderExtraSubjects();
-      calculateMerit();
-    });
-    row.querySelector(".other-grade").addEventListener("change", e => {
-      const target = state.otherSubjects.find(x => x.id === id);
-      if (target) target.grade = e.target.value;
-      calculateMerit();
-    });
-  });
-  calculateMerit();
-}
-
-
-function addExtraSubject(name = "", grade = "G") {
-  if (state.extraSubjects.length >= 10) return;
-  state.extraSubjects.push({ id: String(Date.now() + Math.random()), name, grade });
-  renderExtraSubjects();
-}
-
 function renderExtraSubjects() {
   const wrap = document.getElementById("extraSubjects");
-  if (!wrap) return;
-  if (state.extraSubjects.length === 0) {
-    for (let i=0;i<3;i++) state.extraSubjects.push({ id: String(Date.now()+Math.random()+i), name:"", grade:"G" });
-  }
   wrap.innerHTML = state.extraSubjects.map((item,index)=>`<div class="extra-row" data-id="${item.id}">
-    ${searchableSubjectField("extra-name", `Subjek tambahan ${index+1}`, item.name)}
-    <select class="extra-grade" aria-label="Gred subjek tambahan ${index+1}">${gradeOptions(item.grade)}</select>
-    <button class="remove-extra" type="button" title="Buang">×</button>
-  </div>`).join("");
+    ${searchableSubjectField("extra-name", `Subjek SPM ${index+5}`, item.name)}
+    <select class="extra-grade" aria-label="Gred subjek SPM ${index+5}">${gradeOptions(item.grade)}</select>
+    <button class="remove-extra" type="button" aria-label="Buang subjek ${index+5}">×</button></div>`).join("");
   wrap.querySelectorAll(".extra-row").forEach(row=>{
-    const id=row.dataset.id;
-    const item=state.extraSubjects.find(x=>x.id===id);
-    const nameInput = row.querySelector(".extra-name");
-    attachSubjectAutocomplete(nameInput, ()=>availableExtraSubjects(id,nameInput.value), (value)=>{
-      if(item) item.name=value;
-      renderExtraSubjects();
-      renderOtherSubjects();
-      calculateMerit();
+    const item=state.extraSubjects.find(x=>x.id===row.dataset.id);
+    const input=row.querySelector(".extra-name");
+    attachSubjectAutocomplete(input,()=>availableExtraSubjects(item.id,input.value),value=>{
+      item.name=value; calculateMerit();
     });
-    row.querySelector(".extra-grade").addEventListener("change",e=>{ const target=state.extraSubjects.find(x=>x.id===id); if(target)target.grade=e.target.value; calculateMerit(); });
-    row.querySelector(".remove-extra").addEventListener("click",()=>{ state.extraSubjects=state.extraSubjects.filter(x=>x.id!==id); renderExtraSubjects(); renderOtherSubjects(); calculateMerit(); });
+    row.querySelector(".extra-grade").addEventListener("change",e=>{item.grade=e.target.value;calculateMerit();});
+    row.querySelector(".remove-extra").addEventListener("click",()=>{state.extraSubjects=state.extraSubjects.filter(x=>x.id!==item.id);renderExtraSubjects();calculateMerit();});
   });
 }
 
@@ -1656,10 +1534,10 @@ function candidateSubjectName(name){ return UI_SUBJECT_CANON[name] || name; }
 
 function getCandidateProfile(){
   const subjects={};
-  UNIVERSAL_SUBJECTS.forEach(s=>{ const el=document.getElementById(s.id); if(el) subjects[candidateSubjectName(s.name)]=el.value; });
+  UNIVERSAL_SUBJECTS.forEach(s=>{ const el=document.getElementById(s.id); if(el && el.value) subjects[candidateSubjectName(s.name)]=el.value; });
   document.querySelectorAll(".package-item").forEach(row=>{ const n=row.querySelector(".package-name")?.value; const g=row.querySelector(".package-grade")?.value; if(n) subjects[candidateSubjectName(n)]=g; });
-  state.otherSubjects.forEach(x=>{ if(x.name) subjects[candidateSubjectName(x.name)]=x.grade; });
-  state.extraSubjects.forEach(x=>{ if(x.name) subjects[candidateSubjectName(x.name)]=x.grade; });
+  state.otherSubjects.forEach(x=>{ if(x.name && x.grade) subjects[candidateSubjectName(x.name)]=x.grade; });
+  state.extraSubjects.forEach(x=>{ if(x.name && x.grade) subjects[candidateSubjectName(x.name)]=x.grade; });
   const b=document.getElementById("bumiputeraStatus")?.value || "unknown";
   return { subjects, bumiputera: b === "yes" ? true : b === "no" ? false : null, results_complete: !!document.getElementById("resultsComplete")?.checked };
 }
@@ -1976,22 +1854,19 @@ function eligibilityPresentation(program,candidate){
 }
 
 function loadDemoFarmasi(failChemistry=false){
-  document.getElementById("stream").value="stemA"; renderPackage();
-  const grades={bm:"A",bi:"A",math:"A",history:"A"}; Object.entries(grades).forEach(([id,g])=>{document.getElementById(id).value=g;});
-  const rows=[...document.querySelectorAll(".package-item")];
-  if(rows[0]){rows[0].querySelector(".package-name").value="Biologi";rows[0].querySelector(".package-grade").value="A";}
-  if(rows[1]){rows[1].querySelector(".package-name").value="Kimia";rows[1].querySelector(".package-grade").value=failChemistry?"D":"C+";}
-  state.otherSubjects=[{id:"demo1",name:"Fizik",grade:"A"},{id:"demo2",name:"Matematik Tambahan",grade:"A"}];
-  state.extraSubjects=[]; renderExtraSubjects(); renderOtherSubjects();
+  UNIVERSAL_SUBJECTS.forEach(s=>document.getElementById(s.id).value="A");
+  state.extraSubjects=[["Biologi","A"],["Kimia",failChemistry?"G":"C+"],["Fizik","A"],["Matematik Tambahan","A"],["Pendidikan Islam","A"]].map(([name,grade],i)=>({id:"demo"+i,name,grade}));
+  renderExtraSubjects();
   document.getElementById("koku").value="9"; document.getElementById("bumiputeraStatus").value="yes"; document.getElementById("resultsComplete").checked=true;
   document.getElementById("interestInput").value="farmasi"; calculateMerit(); renderResults("farmasi"); document.getElementById("resultsSection").scrollIntoView({behavior:"smooth",block:"start"});
 }
 function clearPrototype(){
-  renderResults("");
   state.otherSubjects=[];
-  state.extraSubjects=[];
-  document.getElementById("packageGrid").innerHTML="";
-  document.getElementById("stream").value="stemA"; renderPackage(); UNIVERSAL_SUBJECTS.forEach(s=>document.getElementById(s.id).value="G"); state.otherSubjects=[]; state.extraSubjects=[]; renderOtherSubjects(); renderExtraSubjects(); document.getElementById("koku").value="0"; document.getElementById("bumiputeraStatus").value="unknown"; document.getElementById("resultsComplete").checked=false; document.getElementById("interestInput").value=""; calculateMerit(); renderResults("");
+  state.extraSubjects=Array.from({length:3},(_,i)=>({id:"empty"+i,name:"",grade:""}));
+  UNIVERSAL_SUBJECTS.forEach(s=>document.getElementById(s.id).value="");
+  renderExtraSubjects();
+  document.getElementById("koku").value="0";document.getElementById("bumiputeraStatus").value="unknown";document.getElementById("resultsComplete").checked=false;document.getElementById("interestInput").value="";
+  activeResultQuery="";calculateMerit();renderResults("");
 }
 
 const STREAM_LABELS = {
@@ -2037,102 +1912,62 @@ function detectStreamFromEnteredSubjects(){
   if(c1Count>=2 || c2Count>=1) return "stemC";
 
   // Any complete subject combination that does not satisfy A/B/C falls under KSI.
-  if(document.getElementById("resultsComplete")?.checked) return "humanities";
+  if(set.size) return "humanities";
   return null;
 }
 
-function updateStreamAudit(){
-  const box=document.getElementById("streamAudit");
-  if(!box) return {detected:null,conflict:false};
-  const selected=document.getElementById("stream")?.value || "";
-  const complete=!!document.getElementById("resultsComplete")?.checked;
-  const detected=detectStreamFromEnteredSubjects();
-  box.className="stream-audit";
-  if(!complete){
-    box.innerHTML="<strong>Semakan aliran:</strong> selepas semua subjek dimasukkan, tandakan kesempurnaan keputusan untuk semakan kombinasi aliran.";
-    return {detected,conflict:false};
-  }
-  if(!detected){
-    box.innerHTML="<strong>Semakan aliran:</strong> belum cukup maklumat untuk menentukan aliran dengan yakin. Semak panduan rasmi UPU.";
-    return {detected:null,conflict:false};
-  }
-  if(detected===selected){
-    box.classList.add("ok");
-    box.innerHTML=`✅ <strong>Pilihan aliran sepadan:</strong> ${STREAM_LABELS[detected]}.`;
-    return {detected,conflict:false};
-  }
-  box.classList.add("warn");
-  box.innerHTML=`⚠️ <strong>Semak pilihan aliran.</strong> Berdasarkan kombinasi subjek yang dimasukkan, sistem mengesan <strong>${STREAM_LABELS[detected]}</strong>, tetapi anda memilih <strong>${STREAM_LABELS[selected]||selected}</strong>. Merit masih dikira menggunakan aliran yang anda pilih sehingga anda membetulkannya.`;
-  return {detected,conflict:true};
+// UPUMatch automatic SPM entry: classification uses subject presence, not grades.
+function autoMeritSelection() {
+  const stream=detectStreamFromEnteredSubjects() || "humanities";
+  const seen=new Set(UNIVERSAL_SUBJECTS.map(s=>canonicalSubject(s.name)));
+  const entries=[];
+  state.extraSubjects.forEach(x=>{
+    const canon=canonicalSubject(x.name);
+    if(!x.name || seen.has(canon)) return;
+    seen.add(canon); entries.push({...x,canon,points:GRADE_POINTS[x.grade]||0});
+  });
+  const validPackage=new Set(PACKAGE_SUBJECTS[stream].map(canonicalSubject));
+  const rank=(a,b)=>b.points-a.points || a.name.localeCompare(b.name,"ms");
+  const selectedPackage=entries.filter(x=>validPackage.has(x.canon) && x.grade).sort(rank).slice(0,stream==="stemC"?1:2);
+  const used=new Set(selectedPackage.map(x=>x.canon));
+  const validMerit=new Set(SUBJECT_MASTER.map(canonicalSubject));
+  const selectedBest=entries.filter(x=>x.grade && validMerit.has(x.canon) && !used.has(x.canon)).sort(rank).slice(0,2);
+  return {stream,selectedPackage,selectedBest};
 }
-
+function updateStreamAudit(){
+  const detected=detectStreamFromEnteredSubjects();
+  const complete=document.getElementById("resultsComplete").checked;
+  const box=document.getElementById("streamAudit");
+  box.className="stream-audit"+(complete?" ok":"");
+  const set=enteredElectiveSubjectSet();
+  const has=n=>set.has(canonicalSubject(n));
+  const evidence=detected==="stemA" ? "Biologi, Fizik, Kimia dan Matematik Tambahan" : detected==="stemB" ? "Dua sains tulen, Matematik Tambahan dan elektif tambahan yang ditetapkan" : detected==="stemC" ? (STEM_C2_SUBJECTS.some(has)?"C2: sekurang-kurangnya satu subjek MPV":"C1: sekurang-kurangnya dua elektif STEM") : "Kombinasi semasa belum memenuhi STEM A, B atau C";
+  box.innerHTML=detected?`<strong>${STREAM_LABELS[detected]}</strong>${complete?"":" · Sementara"}<br>${evidence}.${complete?"":" Lengkapkan semua subjek untuk pengesanan akhir."}`:"Masukkan subjek lain untuk mengesan pakej.";
+  return {detected,conflict:false};
+}
 function calculateMerit() {
-  const universalPoints = UNIVERSAL_SUBJECTS.reduce((sum, s) => {
-    const el = document.getElementById(s.id);
-    return sum + (el ? GRADE_POINTS[el.value] : 0);
-  }, 0);
-  const universalMerit = (universalPoints / 72) * 40;
-
-  const stream = document.getElementById("stream").value;
-  const packageDenom = stream === "stemC" ? 18 : 36;
-  const validPackageSubjects = new Set((PACKAGE_SUBJECTS[stream] || []).map(canonicalSubject));
-  const validMeritSubjects = new Set(SUBJECT_MASTER.map(canonicalSubject));
-  const usedMeritSubjects = new Set(UNIVERSAL_SUBJECTS.map(s => canonicalSubject(s.name)));
-
-  let packagePoints = 0;
-  [...document.querySelectorAll(".package-item")].forEach((row) => {
-    const subject = row.querySelector(".package-name")?.value?.trim() || "";
-    const grade = row.querySelector(".package-grade")?.value || "G";
-    const canon = canonicalSubject(subject);
-    if (!subject || !validPackageSubjects.has(canon) || usedMeritSubjects.has(canon)) return;
-    packagePoints += GRADE_POINTS[grade] || 0;
-    usedMeritSubjects.add(canon);
-  });
-  const packageMerit = (packagePoints / packageDenom) * 30;
-
-  // Merit 2.0: choose the best 2 remaining eligible subjects automatically.
-  // Pool together the two visible "best subject" rows and all additional SPM
-  // subjects entered for eligibility. Only official merit subjects are counted;
-  // universal/package subjects and aliases already used are excluded.
-  const bestCandidates = [];
-  const addBestCandidate = (subject, grade) => {
-    const canon = canonicalSubject(subject);
-    if (!subject || !validMeritSubjects.has(canon) || usedMeritSubjects.has(canon)) return;
-    if (bestCandidates.some(x => x.canon === canon)) return;
-    bestCandidates.push({ canon, subject, grade, points: GRADE_POINTS[grade] || 0 });
-  };
-
-  [...document.querySelectorAll(".other-row")].forEach((row) => {
-    addBestCandidate(
-      row.querySelector(".other-name")?.value?.trim() || "",
-      row.querySelector(".other-grade")?.value || "G"
-    );
-  });
-  state.extraSubjects.forEach((item) => {
-    addBestCandidate((item.name || "").trim(), item.grade || "G");
-  });
-
-  bestCandidates.sort((a,b) => b.points-a.points || a.subject.localeCompare(b.subject,"ms"));
-  const selectedBest = bestCandidates.slice(0,2);
-  const bestMerit = (selectedBest.reduce((sum,x) => sum + x.points, 0) / 36) * 10;
-
-  const rawAcademic80 = universalMerit + packageMerit + bestMerit;
-  const academic90 = (rawAcademic80 / 80) * 90;
-  const koku = Math.min(10, Math.max(0, Number(document.getElementById("koku").value) || 0));
-  const totalRaw = Math.min(100, Math.max(0, academic90 + koku));
-  // What users see (2 d.p.) is also what competition bands use.
-  const total = Number(totalRaw.toFixed(2));
-
-  document.getElementById("universalScore").textContent = `${universalMerit.toFixed(2)} / 40`;
-  document.getElementById("packageScore").textContent = `${packageMerit.toFixed(2)} / 30`;
-  document.getElementById("bestScore").textContent = `${bestMerit.toFixed(2)} / 10`;
-  document.getElementById("academicScore").textContent = `${academic90.toFixed(2)} / 90`;
-  document.getElementById("kokuScore").textContent = `${koku.toFixed(2)} / 10`;
-  document.getElementById("meritValue").textContent = `${total.toFixed(2)}%`;
-  document.getElementById("meritBadge").dataset.merit = total.toFixed(2);
-  updateStreamAudit();
-  requestResultRefresh();
-  return total;
+  const selection=autoMeritSelection();
+  document.getElementById("stream").value=selection.stream;
+  const universalPoints=UNIVERSAL_SUBJECTS.reduce((sum,s)=>sum+(GRADE_POINTS[document.getElementById(s.id).value]||0),0);
+  const universalMerit=universalPoints/72*40;
+  const packageDenom=selection.stream==="stemC"?18:36;
+  const packageMerit=selection.selectedPackage.reduce((sum,x)=>sum+x.points,0)/packageDenom*30;
+  const bestMerit=selection.selectedBest.reduce((sum,x)=>sum+x.points,0)/36*10;
+  const academic90=(universalMerit+packageMerit+bestMerit)/80*90;
+  const koku=Math.min(10,Math.max(0,Number(document.getElementById("koku").value)||0));
+  const total=Number((academic90+koku).toFixed(2));
+  for(const [id,value,max] of [["universalScore",universalMerit,40],["packageScore",packageMerit,30],["bestScore",bestMerit,10],["academicScore",academic90,90],["kokuScore",koku,10]]) document.getElementById(id).textContent=`${value.toFixed(2)} / ${max}`;
+  document.getElementById("meritValue").textContent=`${total.toFixed(2)}%`;
+  document.getElementById("meritBadge").dataset.merit=total.toFixed(2);
+  const show=items=>items.length?items.map(x=>`${escapeHtml(x.name)} (${escapeHtml(x.grade)})`).join(" · "):"Belum tersedia";
+  const missing=[];
+  if(UNIVERSAL_SUBJECTS.some(s=>!document.getElementById(s.id).value)) missing.push("Lengkapkan gred empat subjek universal.");
+  if(state.extraSubjects.some(x=>(x.name&&!x.grade)||(!x.name&&x.grade))) missing.push("Lengkapkan nama dan gred pada setiap baris yang digunakan.");
+  if(selection.selectedPackage.length<(selection.stream==="stemC"?1:2)) missing.push("Subjek pakej untuk kiraan belum mencukupi.");
+  if(selection.selectedBest.length<2) missing.push("Dua subjek terbaik lain belum mencukupi.");
+  document.getElementById("autoSelection").innerHTML=`<strong>Pakej (${selection.stream==="stemC"?1:2} subjek):</strong> ${show(selection.selectedPackage)}<br><strong>2 terbaik lain:</strong> ${show(selection.selectedBest)}<br><small>Akademik = (Universal + Pakej + 2 terbaik) ÷ 80 × 90. Merit = Akademik + Kokurikulum. Pengiraan menggunakan nilai penuh sebelum pembundaran akhir.</small>${missing.length?`<p style="color:#b45309"><strong>Kiraan sementara:</strong> ${missing.join(" ")}</p>`:""}`;
+  if(UNIVERSAL_SUBJECTS.some(s=>!document.getElementById(s.id).value) || state.extraSubjects.some(x=>(x.name&&!x.grade)||(!x.name&&x.grade))) document.getElementById("resultsComplete").checked=false;
+  updateStreamAudit();requestResultRefresh();return total;
 }
 
 function normalize(s) {
@@ -2423,13 +2258,13 @@ function renderResultsContent(query) {
 }
 
 function init() {
-  renderUniversal(); renderPackage(); renderOtherSubjects(); renderExtraSubjects();
+  renderUniversal(); state.extraSubjects=Array.from({length:3},(_,i)=>({id:"initial"+i,name:"",grade:""})); renderExtraSubjects();
   document.getElementById("dataCount").textContent=window.UPUMATCH_PROGRAMS.length;
   const autoReadyCount=window.UPUMATCH_PROGRAMS.filter(p=>p.eligibility?.hard_rejection_enabled===true).length;
   document.getElementById("catalogueRibbon").textContent=`✅ Data sesi ${window.UPUMATCH_DATA.metadata.session} · ${window.UPUMATCH_PROGRAMS.length} program · ${autoReadyCount} semakan akademik automatik · ${window.UPUMATCH_PROGRAMS.length-autoReadyCount} semakan akademik dalam audit`;
   document.getElementById("autoCount").textContent=autoReadyCount;
   document.getElementById("manualCount").textContent=window.UPUMATCH_PROGRAMS.length-autoReadyCount;
-  document.getElementById("stream").addEventListener("change",renderPackage);
+
   document.getElementById("koku").addEventListener("input",calculateMerit);
   document.getElementById("resultsComplete").addEventListener("change",calculateMerit);
   document.getElementById("bumiputeraStatus").addEventListener("change",requestResultRefresh);
