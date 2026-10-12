@@ -289,6 +289,18 @@ footer { background: #071a36; color: #fff; padding: 28px 0; }
   .subject-option{min-height:44px}
 }
 
+
+/* Warna bahagian input dan kad merit ringkas. */
+#universalGrid .grade-field { background: #eaf3ff; border-color: #bfd6f4; }
+#universalGrid .grade-field label { color: #173f73; }
+#extraSubjects .extra-row { background: #f3edff; border: 1px solid #ded0f4; border-radius: 14px; padding: 12px; min-width: 0; }
+#extraSubjects .extra-row input, #extraSubjects .extra-row select { background: #fff; border-color: #d7c7ee; }
+#extraSubjects .remove-extra { background: #e7dcf6; color: #67408f; }
+#autoSelection { background: #eaf8f0; border: 1px solid #bee4cd; border-radius: 14px; padding: 16px; color: #285c43; line-height: 1.65; }
+#autoSelection strong { color: #17613a; }
+.form-card > #meritBadge { width: min(100%, 320px); min-width: 0; margin: 24px auto 0; padding: 20px 24px; text-align: center; }
+#meritBadge strong { font-size: 36px; }
+
 </style>
 <!-- UPUMatch v4.4 syarat audit: 2026-09-01 -->
 <!-- UPUMatch v4.11: UiTM eligibility audit 2026-09-01 -->
@@ -360,7 +372,7 @@ footer { background: #071a36; color: #fff; padding: 28px 0; }
           <div id="streamAudit" class="stream-audit" aria-live="polite"></div>
         </div>
         <div class="subsection-title">Masukkan semua keputusan SPM</div>
-        <div class="subsection-note">Isi gred empat subjek universal, kemudian tambah semua subjek lain yang diambil. Sistem memilih subjek pakej dan dua subjek terbaik lain secara automatik.</div>
+        <div class="subsection-note">Isi gred empat subjek universal dan semua subjek lain yang diambil. Lima ruang subjek lain disediakan; biarkan ruang yang tidak digunakan kosong. Klik “Tambah subjek” jika mengambil lebih daripada sembilan subjek.</div>
         <div class="grade-grid" id="universalGrid"></div>
         <div class="extra-title-row"><strong>Subjek lain yang diambil</strong><button type="button" id="addExtraBtn">+ Tambah subjek</button></div>
         <div id="extraSubjects" class="extra-grid"></div>
@@ -403,8 +415,6 @@ footer { background: #071a36; color: #fff; padding: 28px 0; }
             </div>
           </div>
           <div class="demo-actions">
-            <button type="button" id="demoFarmasiPass">Cuba contoh Farmasi ✅</button>
-            <button type="button" id="demoFarmasiFail">Cuba contoh Kimia gagal ❌</button>
             <button type="button" id="clearDemo">Kosongkan semula</button>
           </div>
         </div>
@@ -1853,16 +1863,9 @@ function eligibilityPresentation(program,candidate){
   return {ev,html:`<div class="eligibility-result ${cls}"><strong>${title}</strong><p>${message}</p>${details.length?`<ul>${details.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}<p style="opacity:.8;font-size:11px;margin-top:7px">${note}</p></div>`};
 }
 
-function loadDemoFarmasi(failChemistry=false){
-  UNIVERSAL_SUBJECTS.forEach(s=>document.getElementById(s.id).value="A");
-  state.extraSubjects=[["Biologi","A"],["Kimia",failChemistry?"G":"C+"],["Fizik","A"],["Matematik Tambahan","A"],["Pendidikan Islam","A"]].map(([name,grade],i)=>({id:"demo"+i,name,grade}));
-  renderExtraSubjects();
-  document.getElementById("koku").value="9"; document.getElementById("bumiputeraStatus").value="yes"; document.getElementById("resultsComplete").checked=true;
-  document.getElementById("interestInput").value="farmasi"; calculateMerit(); renderResults("farmasi"); document.getElementById("resultsSection").scrollIntoView({behavior:"smooth",block:"start"});
-}
 function clearPrototype(){
   state.otherSubjects=[];
-  state.extraSubjects=Array.from({length:3},(_,i)=>({id:"empty"+i,name:"",grade:""}));
+  state.extraSubjects=Array.from({length:5},(_,i)=>({id:"empty"+i,name:"",grade:""}));
   UNIVERSAL_SUBJECTS.forEach(s=>document.getElementById(s.id).value="");
   renderExtraSubjects();
   document.getElementById("koku").value="0";document.getElementById("bumiputeraStatus").value="unknown";document.getElementById("resultsComplete").checked=false;document.getElementById("interestInput").value="";
@@ -2258,7 +2261,7 @@ function renderResultsContent(query) {
 }
 
 function init() {
-  renderUniversal(); state.extraSubjects=Array.from({length:3},(_,i)=>({id:"initial"+i,name:"",grade:""})); renderExtraSubjects();
+  renderUniversal(); state.extraSubjects=Array.from({length:5},(_,i)=>({id:"initial"+i,name:"",grade:""})); renderExtraSubjects();
   document.getElementById("dataCount").textContent=window.UPUMATCH_PROGRAMS.length;
   const autoReadyCount=window.UPUMATCH_PROGRAMS.filter(p=>p.eligibility?.hard_rejection_enabled===true).length;
   document.getElementById("catalogueRibbon").textContent=`✅ Data sesi ${window.UPUMATCH_DATA.metadata.session} · ${window.UPUMATCH_PROGRAMS.length} program · ${autoReadyCount} semakan akademik automatik · ${window.UPUMATCH_PROGRAMS.length-autoReadyCount} semakan akademik dalam audit`;
@@ -2269,8 +2272,6 @@ function init() {
   document.getElementById("resultsComplete").addEventListener("change",calculateMerit);
   document.getElementById("bumiputeraStatus").addEventListener("change",requestResultRefresh);
   document.getElementById("addExtraBtn").addEventListener("click",()=>addExtraSubject());
-  document.getElementById("demoFarmasiPass").addEventListener("click",()=>loadDemoFarmasi(false));
-  document.getElementById("demoFarmasiFail").addEventListener("click",()=>loadDemoFarmasi(true));
   document.getElementById("clearDemo").addEventListener("click",clearPrototype);
   document.getElementById("printBtn").addEventListener("click",printCurrentResults);
   document.getElementById("matchBtn").addEventListener("click",()=>{ renderResults(document.getElementById("interestInput").value); document.getElementById("resultsSection").scrollIntoView({behavior:"smooth",block:"start"}); });
