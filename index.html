@@ -507,7 +507,7 @@ footer { background: #071a36; color: #fff; padding: 28px 0; }
 </div>
 <div aria-labelledby="universityTab" id="universityExplorer" role="tabpanel">
 <h3 class="explore-title">Institusi pilihan <span id="universitySelectionCount"></span></h3>
-<p class="explore-help">Pilih satu atau beberapa institusi. Bilangan ialah padanan awal selepas tapisan syarat akademik yang dapat dipastikan, <strong>bukan pengesahan layak sepenuhnya</strong>. Syarat khas dan merit masih perlu disemak.</p>
+<p class="explore-help">Semua institusi dalam data ditunjukkan. Pilih satu atau beberapa institusi; program hanya dipaparkan jika melepasi tapisan yang tersedia. Program belum disahkan bukan jaminan layak. Bilangan ialah padanan awal selepas tapisan syarat akademik yang dapat dipastikan, <strong>bukan pengesahan layak sepenuhnya</strong>. Syarat khas dan merit masih perlu disemak.</p>
 <div class="university-grid" id="universityGrid"></div>
 <div class="explore-actions"><button class="btn btn-light" id="chooseAllUniversities" type="button">Pilih Semua</button><button class="btn btn-light" id="clearUniversities" type="button">Kosongkan</button><button class="btn btn-primary" id="universityMatchBtn" type="button">TEROKA PROGRAM</button></div>
 </div>
@@ -2438,13 +2438,17 @@ function confirmedAcademicMatch(p,candidate){
 function visibleAcademicProgramme(p,candidate){return confirmedAcademicMatch(p,candidate);}
 
 function universityOptions(){
+  // Catalog of institutions is independent of student eligibility filtering.
+  // NEVER hide an entire institution merely because no current result is confirmed.
   const counts=new Map();
   const candidate=getCandidateProfile();
-  if(!candidate.results_complete) return [];
   for(const p of (window.UPUMATCH_PROGRAMS||[])){
     const name=String(p.institution||'Institusi tidak dinyatakan').trim();
-    if(!name || !visibleAcademicProgramme(p,candidate)) continue;
-    counts.set(name,(counts.get(name)||0)+1);
+    if(!name)continue;
+    const entry=counts.get(name)||{total:0,potential:0};
+    entry.total++;
+    if(candidate.results_complete && visibleAcademicProgramme(p,candidate))entry.potential++;
+    counts.set(name,entry);
   }
   return [...counts].sort((a,b)=>a[0].localeCompare(b[0],'ms'));
 }
@@ -2455,10 +2459,10 @@ function renderUniversityChoices(){
   const candidate=getCandidateProfile();
   if(!candidate.results_complete){
     const note=document.createElement('p');note.className='institution-filter-notice';
-    note.textContent='Lengkapkan keputusan SPM dan tandakan pengesahan semua subjek dahulu. Institusi yang mempunyai program berpotensi akan dipaparkan; rekod belum diaudit dilabel untuk semakan lanjut.';
-    grid.append(note);updateUniversitySelectionCount();return;
+    note.textContent='Semua institusi dalam pangkalan data dipaparkan. Lengkapkan keputusan SPM untuk menyemak padanan program.';
+    grid.append(note);
   }
-  // Pilihan lama yang tidak lagi mempunyai program sepadan tidak boleh kekal dipilih.
+  // Selections persist whenever an institution exists in the catalog.
   const available=new Set(opts.map(([name])=>name));
   for(const name of [...chosenInstitutions])if(!available.has(name))chosenInstitutions.delete(name);
   if(!opts.length){
@@ -2466,11 +2470,11 @@ function renderUniversityChoices(){
     note.textContent='Tiada program yang boleh dipadankan berdasarkan keputusan dan syarat asas yang dimasukkan.';
     grid.append(note);updateUniversitySelectionCount();return;
   }
-  for(const [name,count] of opts){
+  for(const [name,stats] of opts){
     const label=document.createElement('label');label.className='university-choice'+(chosenInstitutions.has(name)?' selected':'');
     const check=document.createElement('input');check.type='checkbox';check.checked=chosenInstitutions.has(name);check.setAttribute('aria-label',name);
     const title=document.createElement('span');title.className='uni-name';title.textContent=name;
-    const n=document.createElement('span');n.className='uni-count';n.textContent=count+' program untuk semakan';
+    const n=document.createElement('span');n.className='uni-count';n.textContent= candidate.results_complete ? stats.potential+' padanan awal / '+stats.total+' program dalam data' : stats.total+' program dalam data';
     const details=document.createElement('span');details.className='uni-details';details.append(title,n);
     const logoKey=getInstitutionLogoKey(name);
     const logoUrl=UPUMATCH_USER_IMAGE_LOGOS[logoKey];
@@ -2536,7 +2540,7 @@ function renderResultsContent(query) {
   const all=[...grouped.primary,...grouped.related];
   const removedBySubjectGate=(rawGrouped.primary.length+rawGrouped.related.length)-all.length;
   summary.textContent=exploreMode==='matric' ? `${all.length} padanan awal Matrikulasi KPM selepas tapisan syarat akademik yang dapat dipastikan. Syarat bukan akademik masih perlu disahkan.` : exploreMode==='university'
-    ? `${all.length} program memenuhi semakan akademik dalam ${chosenInstitutions.size?chosenInstitutions.size+' institusi dipilih':'institusi yang sepadan'}. Program yang belum disahkan dipaparkan untuk semakan, bukan diisytiharkan layak. Merit, temu duga dan syarat lain tertakluk pada ketetapan rasmi.`
+    ? `${all.length} program memenuhi semakan akademik dalam ${chosenInstitutions.size?chosenInstitutions.size+' institusi dipilih':'semua institusi dalam data'}. Program yang belum disahkan dipaparkan untuk semakan, bukan diisytiharkan layak. Merit, temu duga dan syarat lain tertakluk pada ketetapan rasmi.`
     : all.length
     ? `${all.length} padanan ditemui untuk “${query}”.${candidate.results_complete && removedBySubjectGate>0?` ${removedBySubjectGate} program tidak dipaparkan kerana subjek wajib program tiada dalam keputusan anda.`:""} Padanan utama dipaparkan dahulu.`
     : `Belum jumpa padanan untuk “${query}”${candidate.results_complete && removedBySubjectGate>0?" selepas tapisan kehadiran subjek":""}.`;
