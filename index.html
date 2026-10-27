@@ -7,7 +7,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <meta content="UPUMatch - alat padanan awal program UPU oleh Unit Bimbingan dan Kaunseling SMK Sungai Besar." name="description"/>
-<title>UPUMatch | Versi Pemulihan Untuk Ujian</title>
+<title>UPUMatch | Mod Teroka Dipulihkan</title>
 <!-- Batch 21 (2026-10-15): print report evidence summary and wrapping; no change to admission rules -->
 <style>
 :root {
@@ -2435,7 +2435,12 @@ function confirmedAcademicMatch(p,candidate){
   if(auditEvidenceReady(p)) return ev.status==='eligible'||ev.status==='eligible_pending_manual';
   return true; // Explicitly marked as 'pending confirmation' in the result card.
 }
-function visibleAcademicProgramme(p,candidate){return confirmedAcademicMatch(p,candidate);}
+function visibleAcademicProgramme(p,candidate){
+  // MODE PEMULIHAN: do not hide potential exploration opportunities on incomplete verification.
+  // Preserve explicit, verified academic hard failures; pending evidence stays visible, not "layak".
+  if(!candidate?.results_complete) return true;
+  return !knownAcademicFailure(p,candidate);
+}
 
 function universityOptions(){
   // Catalog of institutions is independent of student eligibility filtering.
@@ -2531,16 +2536,18 @@ function renderResultsContent(query) {
   }
   const candidate=getCandidateProfile();
   const rawGrouped=discoveryGroups(query);
-  const gate=applySubjectPresenceGate(rawGrouped,candidate);
+  // University explorer is a full catalogue explorer, not a verified-eligibility-only list.
+  // Search/matric routes preserve subject-presence checks where applicable.
+  const gate=exploreMode==='university' ? rawGrouped : applySubjectPresenceGate(rawGrouped,candidate);
   // Both modes must use the same evidence-backed academic eligibility gate.
   // Unknown or failed special requirements never enter the public match list.
-  const academicallyPossible={primary:gate.primary.filter(p=>visibleAcademicProgramme(p,candidate)),related:gate.related.filter(p=>visibleAcademicProgramme(p,candidate))};
+  const academicallyPossible={primary:gate.primary.filter(p=>exploreMode==='university'||visibleAcademicProgramme(p,candidate)),related:gate.related.filter(p=>exploreMode==='university'||visibleAcademicProgramme(p,candidate))};
   const pendingAuditCount=[...academicallyPossible.primary,...academicallyPossible.related].filter(p=>!auditEvidenceReady(p)).length;
   const grouped={primary:academicallyPossible.primary.filter(auditEvidenceSelected),related:academicallyPossible.related.filter(auditEvidenceSelected)};
   const all=[...grouped.primary,...grouped.related];
   const removedBySubjectGate=(rawGrouped.primary.length+rawGrouped.related.length)-all.length;
   summary.textContent=exploreMode==='matric' ? `${all.length} padanan awal Matrikulasi KPM selepas tapisan syarat akademik yang dapat dipastikan. Syarat bukan akademik masih perlu disahkan.` : exploreMode==='university'
-    ? `${all.length} program memenuhi semakan akademik dalam ${chosenInstitutions.size?chosenInstitutions.size+' institusi dipilih':'semua institusi dalam data'}. Program yang belum disahkan dipaparkan untuk semakan, bukan diisytiharkan layak. Merit, temu duga dan syarat lain tertakluk pada ketetapan rasmi.`
+    ? `${all.length} program memenuhi semakan akademik dalam ${chosenInstitutions.size?chosenInstitutions.size+' institusi dipilih':'semua institusi dalam data'}. Katalog program dibuka semula untuk penerokaan; status kelayakan setiap program mesti dibaca secara berasingan. Merit, temu duga dan syarat lain tertakluk pada ketetapan rasmi.`
     : all.length
     ? `${all.length} padanan ditemui untuk “${query}”.${candidate.results_complete && removedBySubjectGate>0?` ${removedBySubjectGate} program tidak dipaparkan kerana subjek wajib program tiada dalam keputusan anda.`:""} Padanan utama dipaparkan dahulu.`
     : `Belum jumpa padanan untuk “${query}”${candidate.results_complete && removedBySubjectGate>0?" selepas tapisan kehadiran subjek":""}.`;
